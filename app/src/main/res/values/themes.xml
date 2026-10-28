@@ -1,0 +1,19 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme forzado a Modo Claro -->
+    <style name="Base.Theme.SmartPet" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Colores primarios de la app -->
+        <item name="colorPrimary">@color/primary_green</item>
+        <item name="colorPrimaryVariant">@color/primary_green</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        <!-- Colores de texto explícitos y contrastados -->
+        <item name="android:textColor">@color/text_dark</item>
+        <item name="android:textColorPrimary">@color/text_dark</item>
+        <item name="android:textColorSecondary">@color/text_muted</item>
+
+        <!-- Fondo de ventana -->
+        <item name="android:windowBackground">@color/background_app</item>
+    </style>
+
+    <style name="Theme.SmartPet" parent="Base.Theme.SmartPet" />
+</resources>

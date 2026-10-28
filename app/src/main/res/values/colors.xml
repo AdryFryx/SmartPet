@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Paleta Principal SmartPet (Tonos Verdes Naturaleza & Neutros Modernos) -->
+    <color name="primary_green">#15803D</color>      <!-- Verde principal (Botones y destacados) -->
+    <color name="primary_light">#EAF4ED</color>     <!-- Fondo tarjetas de bienvenida -->
+    <color name="accent_orange">#F97316</color>     <!-- Indicador de comida -->
+    <color name="accent_blue">#0284C7</color>       <!-- Indicador de agua -->
+    <color name="background_app">#F8FAF9</color>    <!-- Fondo general de las pantallas -->
+    <color name="text_dark">#111827</color>         <!-- Texto principal oscuro -->
+    <color name="text_muted">#6B7280</color>        <!-- Texto secundario gris -->
+    <color name="card_bg">#FFFFFF</color>           <!-- Fondo de tarjetas blancas -->
+    <color name="stroke_color">#F3F4F6</color>      <!-- Bordes sutiles -->
+    <!-- Colores de marca y fondos -->
+    <!-- Básicos -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>
