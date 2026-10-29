@@ -1,135 +1,166 @@
 package com.example.smartpet.controller
 
-import android.Manifest
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.location.LocationManager
 import android.os.Bundle
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import com.example.smartpet.databinding.ActivityActivatorBinding
 import com.example.smartpet.model.PetDeviceSimulator
+import com.example.smartpet.model.SmartPetData
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 class ActivatorActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityActivatorBinding
-    private val simulator = PetDeviceSimulator()
-    private val databaseRef = FirebaseDatabase.getInstance().getReference("smartpet_simulation")
-    private val LOCATION_PERMISSION_REQ_CODE = 1001
+    private lateinit var databaseRef: DatabaseReference
+    private lateinit var auth: FirebaseAuth
+    private var simulator: PetDeviceSimulator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityActivatorBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupSimulationControls()
-        setupActuatorControls()
-        setupNavigationAndSession()
+        auth = FirebaseAuth.getInstance()
+        databaseRef = FirebaseDatabase.getInstance().getReference("smartpet_simulation")
+        simulator = PetDeviceSimulator(databaseRef)
+
+        setupAccountInfo()
+        setupListeners()
+        setupNavigation()
+        loadCurrentSettings()
     }
 
-    private fun setupSimulationControls() {
-        // Switch para activar/detener simulación automática (Consumo progresivo y movimiento)
+    private fun setupAccountInfo() {
+        val user = auth.currentUser
+        val displayName = user?.displayName ?: "Usuario"
+        val email = user?.email ?: "No registrado"
+
+        binding.tvAccountOwner.text = "Usuario: $displayName"
+        binding.tvAccountEmail.text = "Correo: $email"
+
+        binding.btnResetPassword.setOnClickListener {
+            if (!email.contains("@")) {
+                Toast.makeText(this, "Correo no válido", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            auth.sendPasswordResetEmail(email)
+                .addOnSuccessListener {
+                    AlertDialog.Builder(this)
+                        .setTitle("Restablecer Contraseña")
+                        .setMessage("Se ha enviado un correo a $email para cambiar tu contraseña de forma segura.")
+                        .setPositiveButton("Entendido", null)
+                        .show()
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
+    private fun loadCurrentSettings() {
+        databaseRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val data = snapshot.getValue(SmartPetData::class.java) ?: return
+
+                // Cargar radio actual de geocerca
+                val radius = if (data.safeZoneRadiusMeters in 20f..150f) data.safeZoneRadiusMeters else 50f
+                binding.sliderSafeZoneRadius.value = radius
+                binding.tvSafeZoneRadiusLabel.text = "Radio de seguridad: %.0f metros".format(radius)
+
+                // Cargar modo de enlace
+                if (data.connectionMode == "BLE") {
+                    binding.rbBluetooth.isChecked = true
+                } else {
+                    binding.rbWifi.isChecked = true
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {}
+        })
+    }
+
+    private fun setupListeners() {
+        // Slider para radio de geocerca
+        binding.sliderSafeZoneRadius.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                binding.tvSafeZoneRadiusLabel.text = "Radio de seguridad: %.0f metros".format(value)
+                databaseRef.child("safeZoneRadiusMeters").setValue(value)
+                simulator?.setSafeZoneRadius(value)
+            }
+        }
+
+        // Fijar ubicación GPS como base (Hogar)
+        binding.btnSetBaseLocation.setOnClickListener {
+            simulator?.setCurrentAsBase()
+            Toast.makeText(this, "Coordenadas fijadas como Hogar", Toast.LENGTH_SHORT).show()
+        }
+
+        // Selección de canal WiFi vs BLE
+        binding.rgChannel.setOnCheckedChangeListener { _, checkedId ->
+            val mode = if (checkedId == binding.rbBluetooth.id) "BLE" else "WIFI"
+            databaseRef.child("connectionMode").setValue(mode)
+            Toast.makeText(this, "Modo de comunicación: $mode", Toast.LENGTH_SHORT).show()
+        }
+
+        // Switches de laboratorio / simulación
         binding.switchAutoSimulation.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                simulator.startSimulation(intervalMillis = 3500L)
-                binding.tvSyncBadge.text = "🟢 Simulando en Vivo"
-                Toast.makeText(this, "Simulador IoT iniciado", Toast.LENGTH_SHORT).show()
+                simulator?.startSimulation()
+                binding.tvSyncBadge.text = "🟢 Simulando Activo"
             } else {
-                simulator.stopSimulation()
-                binding.tvSyncBadge.text = "⏸️ Simulación Pausada"
-                Toast.makeText(this, "Simulador IoT detenido", Toast.LENGTH_SHORT).show()
+                simulator?.stopSimulation()
+                binding.tvSyncBadge.text = "⚪ Simulación Pausada"
             }
         }
 
-        // Switch para forzar la fuga de la mascota (disparar la alerta en el otro teléfono)
-        binding.switchForceBreach.setOnCheckedChangeListener { _, isBreach ->
-            simulator.toggleSafeZoneBreach(isBreach)
-            val msg = if (isBreach) "¡Simulando escape fuera de zona segura!" else "Mascota reingresó a zona segura"
+        binding.switchForceBreach.setOnCheckedChangeListener { _, isChecked ->
+            simulator?.simulateBreach(isChecked)
+            val msg = if (isChecked) "Mascota fuera de perímetro" else "Mascota regresó a zona segura"
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-        }
-
-        // Botón para fijar coordenadas reales de la sala como base
-        binding.btnSetBaseLocation.setOnClickListener {
-            captureCurrentGpsLocation()
-        }
-    }
-
-    private fun setupActuatorControls() {
-        // Slider de comida (SG90)
-        binding.sliderFood.addOnChangeListener { _, value, _ ->
-            binding.tvDispenseQuantity.text = "Cantidad a dispensar: ${value.toInt()} gramos"
-        }
-
-        binding.btnDispenseFoodCustom.setOnClickListener {
-            val amount = binding.sliderFood.value.toDouble()
-            simulator.dispenseFood(amount)
-            Toast.makeText(this, "Simulando dispensado de ${amount.toInt()}g con SG90", Toast.LENGTH_SHORT).show()
-        }
-
-        // Switch Bomba de Agua (MOSFET)
-        binding.switchWaterPump.setOnCheckedChangeListener { _, isChecked ->
-            databaseRef.child("dispenseWaterTrigger").setValue(isChecked)
-            if (isChecked) {
-                simulator.dispenseWater(150.0)
-                Toast.makeText(this, "Bomba DC activada (+150ml suministrados)", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // Switch Buzzer / LEDs
-        binding.switchBuzzerLeds.setOnCheckedChangeListener { _, isChecked ->
-            databaseRef.child("buzzerAlert").setValue(isChecked)
-            val estado = if (isChecked) "Alarma y LEDs activados" else "Alarma apagada"
-            Toast.makeText(this, estado, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun captureCurrentGpsLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-                LOCATION_PERMISSION_REQ_CODE
-            )
-            return
-        }
-
-        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-            ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-
-        if (lastLocation != null) {
-            simulator.setBaseLocation(lastLocation.latitude, lastLocation.longitude)
-            Toast.makeText(this, "Hogar fijado en: %.4f, %.4f".format(lastLocation.latitude, lastLocation.longitude), Toast.LENGTH_LONG).show()
-        } else {
-            // Coordenadas de contingencia si el emulador no tiene señal GPS
-            simulator.setBaseLocation(-33.4569, -70.6483)
-            Toast.makeText(this, "GPS no disponible. Ubicación base fijada por defecto", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun setupNavigationAndSession() {
-        // Regresar al Dashboard al presionar Inicio
-        binding.navHomeActivator.setOnClickListener {
-            finish()
         }
 
         // Cerrar sesión
         binding.btnLogout.setOnClickListener {
-            simulator.stopSimulation()
-            FirebaseAuth.getInstance().signOut()
-            val intent = Intent(this, LoginActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
+            AlertDialog.Builder(this)
+                .setTitle("Cerrar Sesión")
+                .setMessage("¿Estás seguro de que deseas salir?")
+                .setPositiveButton("Salir") { _, _ ->
+                    simulator?.stopSimulation()
+                    auth.signOut()
+                    val intent = Intent(this, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        }
+    }
+
+    private fun setupNavigation() {
+        binding.navHomeActivator.setOnClickListener {
+            finish() // Regresa al Dashboard
+        }
+
+        binding.navFoodActivator.setOnClickListener {
+            finish()
+        }
+
+        binding.navLocationActivator.setOnClickListener {
             finish()
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        simulator.stopSimulation()
+        simulator?.stopSimulation()
     }
 }

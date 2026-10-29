@@ -3,27 +3,28 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:background="@color/background_app"
     android:fitsSystemWindows="true"
-    android:background="@color/background_app">
+    android:orientation="vertical">
 
     <!-- Barra Superior -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:background="@color/card_bg"
         android:gravity="center_vertical"
-        android:padding="20dp"
-        android:background="@color/card_bg">
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="16dp">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Configuración y Activadores"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_dark" />
+            android:text="Ajustes del Sistema"
+            android:textColor="@color/text_dark"
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvSyncBadge"
@@ -50,14 +51,14 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- TARJETA 1: SIMULADOR IOT POO Y GPS (NUEVA PARA PRUEBAS) -->
+            <!-- TARJETA 1: CUENTA Y PERFIL -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/card_bg"
                 app:strokeColor="@color/stroke_color"
                 app:strokeWidth="1dp">
 
@@ -70,48 +71,108 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🧪 Motor de Simulación IoT"
-                        android:textStyle="bold"
-                        android:textSize="14sp"
+                        android:layout_marginBottom="8dp"
+                        android:text="👤 Cuenta y Seguridad"
                         android:textColor="@color/text_dark"
-                        android:layout_marginBottom="8dp" />
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
 
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/switchAutoSimulation"
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:id="@+id/tvAccountOwner"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Simular consumo automático"
+                        android:text="Usuario: Cargando..."
+                        android:textColor="@color/text_dark"
                         android:textSize="13sp" />
 
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/switchForceBreach"
+                    <TextView
+                        android:id="@+id/tvAccountEmail"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="Correo: Cargando..."
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnResetPassword"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:text="Restablecer Contraseña por Correo"
+                        android:textColor="@color/primary_green"
+                        android:textSize="11sp"
+                        app:cornerRadius="8dp"
+                        app:strokeColor="@color/primary_green" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- TARJETA 2: CALIBRACIÓN DE GEOCERCA Y PERÍMETRO -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/card_bg"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/stroke_color"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🛡️ Configuración de Geocerca (Hogar)"
+                        android:textColor="@color/text_dark"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvSafeZoneRadiusLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Radio de seguridad: 50 metros"
+                        android:textColor="@color/text_muted"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/sliderSafeZoneRadius"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Simular salida de Zona Segura (Escape)"
-                        android:textSize="13sp" />
+                        android:stepSize="10.0"
+                        android:value="50.0"
+                        android:valueFrom="20.0"
+                        android:valueTo="150.0"
+                        app:thumbColor="@color/primary_green"
+                        app:trackColorActive="@color/primary_green" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnSetBaseLocation"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="40dp"
-                        android:layout_marginTop="8dp"
-                        android:text="Fijar mi ubicación GPS como Hogar"
+                        android:text="Fijar Coordenada Actual como Hogar"
+                        android:textColor="@color/primary_green"
                         android:textSize="11sp"
                         app:cornerRadius="8dp"
-                        android:textColor="@color/primary_green"
                         app:strokeColor="@color/primary_green" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- TARJETA 2: CANAL Y MODO -->
+            <!-- TARJETA 3: CANAL DE COMUNICACIÓN IOT -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/card_bg"
                 app:strokeColor="@color/stroke_color"
                 app:strokeWidth="1dp">
 
@@ -124,11 +185,11 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="📡 Canal de Comunicación y Modo"
-                        android:textStyle="bold"
-                        android:textSize="14sp"
+                        android:layout_marginBottom="8dp"
+                        android:text="📡 Enlace de Comunicación IoT"
                         android:textColor="@color/text_dark"
-                        android:layout_marginBottom="8dp" />
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
 
                     <RadioGroup
                         android:id="@+id/rgChannel"
@@ -142,7 +203,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:checked="true"
-                            android:text="WiFi (Cloud)"
+                            android:text="WiFi (Cloud Realtime)"
                             android:textSize="13sp" />
 
                         <RadioButton
@@ -150,20 +211,20 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Bluetooth Local"
+                            android:text="Bluetooth BLE Local"
                             android:textSize="13sp" />
                     </RadioGroup>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- TARJETA 3: DISPENSADOR DE ALIMENTOS -->
+            <!-- TARJETA 4: CONSOLA DE PRUEBAS / SIMULADOR IOT -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/card_bg"
                 app:strokeColor="@color/stroke_color"
                 app:strokeWidth="1dp">
 
@@ -176,81 +237,33 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🍖 Dispensador de Alimento (Servomotor SG90)"
-                        android:textStyle="bold"
-                        android:textSize="14sp"
-                        android:textColor="@color/text_dark" />
-
-                    <TextView
-                        android:id="@+id/tvDispenseQuantity"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Cantidad a dispensar: 150 gramos"
-                        android:textSize="13sp"
-                        android:textColor="@color/text_muted" />
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/sliderFood"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:valueFrom="25.0"
-                        android:valueTo="300.0"
-                        android:stepSize="25.0"
-                        android:value="150.0"
-                        app:thumbColor="@color/primary_green"
-                        app:trackColorActive="@color/primary_green" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnDispenseFoodCustom"
-                        android:layout_width="match_parent"
-                        android:layout_height="44dp"
-                        android:text="Dispensar Alimento Ahora"
-                        android:textStyle="bold"
-                        app:cornerRadius="10dp"
-                        android:backgroundTint="@color/primary_green" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- TARJETA 4: ACTUADORES EN VIVO -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:strokeColor="@color/stroke_color"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="💧 Control de Actuadores"
-                        android:textStyle="bold"
-                        android:textSize="14sp"
+                        android:layout_marginBottom="4dp"
+                        android:text="🧪 Pruebas de Laboratorio IoT"
                         android:textColor="@color/text_dark"
-                        android:layout_marginBottom="8dp" />
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Permite testear el comportamiento de sensores sin el hardware físico presente."
+                        android:textColor="@color/text_muted"
+                        android:textSize="11sp" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/switchWaterPump"
+                        android:id="@+id/switchAutoSimulation"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Bomba de Agua DC 5V (MOSFET)"
-                        android:textSize="14sp" />
+                        android:text="Simular consumo automático de comida/agua"
+                        android:textSize="13sp" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/switchBuzzerLeds"
+                        android:id="@+id/switchForceBreach"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Alarma Sonora (Buzzer) y LEDs"
-                        android:textSize="14sp" />
+                        android:text="Forzar escape de la mascota (Alerta Breach)"
+                        android:textSize="13sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -263,6 +276,7 @@
                 android:layout_marginBottom="24dp"
                 android:text="Cerrar Sesión Segura"
                 android:textColor="#DC2626"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -272,10 +286,10 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:orientation="horizontal"
         android:background="@color/card_bg"
         android:elevation="8dp"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingHorizontal="16dp">
 
         <LinearLayout
@@ -283,20 +297,32 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:gravity="center"
+            android:orientation="vertical">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🏠" android:textSize="18sp"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Inicio" android:textSize="10sp" android:textColor="@color/text_muted"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Inicio" android:textColor="@color/text_muted" android:textSize="10sp"/>
         </LinearLayout>
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+        <LinearLayout
+            android:id="@+id/navFoodActivator"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🥣" android:textSize="18sp"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alimentación" android:textSize="10sp" android:textColor="@color/text_muted"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Alimentación" android:textColor="@color/text_muted" android:textSize="10sp"/>
         </LinearLayout>
 
-        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+        <LinearLayout
+            android:id="@+id/navLocationActivator"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📍" android:textSize="18sp"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ubicación" android:textSize="10sp" android:textColor="@color/text_muted"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ubicación" android:textColor="@color/text_muted" android:textSize="10sp"/>
         </LinearLayout>
 
         <LinearLayout
@@ -304,10 +330,10 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:gravity="center"
+            android:orientation="vertical">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚙️" android:textSize="18sp"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ajustes" android:textSize="10sp" android:textStyle="bold" android:textColor="@color/primary_green"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ajustes" android:textColor="@color/primary_green" android:textSize="10sp" android:textStyle="bold"/>
         </LinearLayout>
     </LinearLayout>
 

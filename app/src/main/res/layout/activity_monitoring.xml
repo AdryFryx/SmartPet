@@ -62,16 +62,20 @@
             android:padding="6dp"
             app:tint="#374151" />
 
-        <ImageView
-            android:id="@+id/btnProfile"
+        <!-- FOTO DE PERFIL DEL USUARIO -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivUserAvatar"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="#E5E7EB"
-            android:padding="8dp" />
+            android:scaleType="centerCrop"
+            android:src="@android:drawable/ic_menu_myplaces"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.SmallComponent" />
     </LinearLayout>
 
     <!-- CONTENIDO DESPLAZABLE -->
     <ScrollView
+        android:id="@+id/mainScrollView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -101,8 +105,11 @@
                     android:padding="20dp">
 
                     <LinearLayout
-                        android:layout_width="200dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_toStartOf="@+id/ivPetAvatar"
+                        android:layout_marginEnd="12dp"
                         android:orientation="vertical">
 
                         <TextView
@@ -150,17 +157,23 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <View
+                    <!-- FOTO DE LA MASCOTA -->
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/ivPetAvatar"
                         android:layout_width="110dp"
                         android:layout_height="110dp"
                         android:layout_alignParentEnd="true"
                         android:layout_centerVertical="true"
-                        android:background="#D1D5DB" />
+                        android:background="#D1D5DB"
+                        android:scaleType="centerCrop"
+                        android:src="@android:drawable/ic_menu_gallery"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.MediumComponent" />
                 </RelativeLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- FILA DE COMIDA Y AGUA -->
+            <!-- FILA DE COMIDA Y AGUA (SECCIÓN ALIMENTACIÓN) -->
             <LinearLayout
+                android:id="@+id/sectionFood"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
@@ -347,158 +360,120 @@
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
-            <!-- FILA INFERIOR: UBICACIÓN Y ZONA SEGURA -->
-            <LinearLayout
+            <!-- SECCIÓN DE UBICACIÓN Y RADAR EN VIVO -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/sectionLocation"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#E5E7EB"
+                app:strokeWidth="1dp">
 
-                <!-- TARJETA UBICACIÓN GPS -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    app:cardBackgroundColor="#FFFFFF"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="#F3F4F6"
-                    app:strokeWidth="1dp">
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_marginEnd="10dp"
+                            android:background="#F3E8FF"
+                            android:gravity="center"
+                            android:text="📍"
+                            android:textSize="18sp" />
 
                         <LinearLayout
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
+                            android:layout_weight="1"
+                            android:orientation="vertical">
 
                             <TextView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:layout_marginEnd="8dp"
-                                android:background="#F3E8FF"
-                                android:gravity="center"
-                                android:text="📍"
-                                android:textSize="16sp" />
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Ubicación"
-                                    android:textColor="#111827"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:id="@+id/tvGpsCoords"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="GPS: -33.45, -70.66"
-                                    android:textColor="#9CA3AF"
-                                    android:textSize="10sp" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <View
-                            android:id="@+id/viewMapPreview"
-                            android:layout_width="match_parent"
-                            android:layout_height="70dp"
-                            android:layout_marginBottom="8dp"
-                            android:background="#E5E7EB" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- TARJETA ZONA SEGURA -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    app:cardBackgroundColor="#FFFFFF"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="#F3F4F6"
-                    app:strokeWidth="1dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <TextView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:layout_marginEnd="8dp"
-                                android:background="#DCFCE7"
-                                android:gravity="center"
-                                android:text="🛡️"
-                                android:textSize="16sp" />
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Zona segura"
-                                    android:textColor="#111827"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:id="@+id/tvSafeZoneSubtitle"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Tu mascota se encuentra dentro"
-                                    android:textColor="#9CA3AF"
-                                    android:textSize="10sp" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/layoutSafeZoneStatus"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="#F0FDF4"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:padding="10dp">
-
-                            <TextView
-                                android:id="@+id/tvSafeZoneStatus"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="✔ Todo en orden"
-                                android:textColor="#166534"
-                                android:textSize="12sp"
+                                android:text="Rastreo GPS de Mascota"
+                                android:textColor="#111827"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvGpsDistance"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Distancia al Hogar: 0.0 m"
+                                android:textColor="#6B7280"
+                                android:textSize="12sp" />
                         </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tvGpsCoords"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="#F3F4F6"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="4dp"
+                            android:text="-33.4569, -70.6483"
+                            android:textColor="#374151"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardMiniMapContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="190dp"
+                        android:layout_marginBottom="12dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="#E2E8F0"
+                        app:strokeWidth="1dp">
+
+                        <org.osmdroid.views.MapView
+                            android:id="@+id/miniMapView"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <LinearLayout
+                        android:id="@+id/layoutSafeZoneStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="#F0FDF4"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:id="@+id/tvSafeZoneStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="✔ Dentro de Zona Segura"
+                            android:textColor="#166534"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvSafeZoneSubtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="La geocerca de seguridad se encuentra activa y estable."
+                            android:textColor="#4B5563"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </ScrollView>
