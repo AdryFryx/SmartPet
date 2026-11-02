@@ -31,7 +31,7 @@ import kotlin.math.min
 class MonitoringActivity : AppCompatActivity() {
 
     // Coloca aquí tu nueva clave de Carto.
-    private val CARTO_API_KEY = ""
+    private val CARTO_API_KEY = "cb1_4x9i_1_046a8cb08f91bcfa56d6d119"
 
     private lateinit var binding: ActivityMonitoringBinding
     private lateinit var smartPetRepository: SmartPetRepository
