@@ -1,6 +1,8 @@
+
 package com.example.smartpet.model
 
 import android.location.Location
+import android.util.Log
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.CoroutineScope
@@ -12,190 +14,380 @@ import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 
-/**
- * Clase orientada a objetos para simular el comportamiento físico de los sensores
- * y actuadores del hardware SmartPet y sincronizarlos con Firebase Realtime Database.
- */
 class PetDeviceSimulator(
-    private val databaseRef: DatabaseReference = FirebaseDatabase.getInstance().getReference("smartpet_simulation")
+    private val databaseRef: DatabaseReference =
+        FirebaseDatabase.getInstance()
+            .getReference("smartpet_simulation")
 ) {
 
-    // Constantes de capacidad máxima
-    val maxFoodCapacityGrams: Double = 350.0
-    val maxWaterCapacityMl: Double = 1000.0
-    private var safeZoneRadiusMeters: Float = 50.0f // Ahora es variable modificable
+    companion object {
+        private const val TAG = "SMARTPET_ESCAPE"
+    }
 
-    // Estado interno del dispositivo
-    private var currentData = SmartPetData(
-        foodWeightGrams = 240.0,
-        foodPercent = 75,
-        waterWeightGrams = 600.0,
-        waterPercent = 60,
-        latitude = -33.4569,
-        longitude = -70.6483,
-        isInsideSafeZone = true,
-        isDeviceOnline = true,
-        safeZoneRadiusMeters = 50.0f
-    )
+    val maxFoodCapacityGrams = 350.0
+    val maxWaterCapacityMl = 1000.0
 
-    // Coordenadas base (Centro de la zona segura)
-    private var baseLatitude: Double = -33.4569
-    private var baseLongitude: Double = -70.6483
+    private val simulationScope =
+        CoroutineScope(Dispatchers.Default)
 
-    private val simulationScope = CoroutineScope(Dispatchers.Default)
     private var simulationJob: Job? = null
-    var isSimulating: Boolean = false
+
+    @Volatile
+    var isSimulating = false
         private set
 
-    /**
-     * Ajusta el radio de la geocerca configurado desde Ajustes.
-     */
+    private var currentData = SmartPetData()
+
+    private var safeZoneRadiusMeters = 50f
+
+    private var baseLatitude = -33.4569
+    private var baseLongitude = -70.6483
+
+    private fun loadLatestData(
+        onLoaded: (SmartPetData) -> Unit
+    ) {
+        databaseRef.get()
+            .addOnSuccessListener { snapshot ->
+
+                val data =
+                    snapshot.getValue(SmartPetData::class.java)
+                        ?: SmartPetData()
+
+                currentData = data.copy()
+
+                safeZoneRadiusMeters =
+                    data.safeZoneRadiusMeters
+
+                baseLatitude = data.homeLatitude
+                baseLongitude = data.homeLongitude
+
+                Log.d(
+                    TAG,
+                    "Datos cargados: hogar=${data.homeLatitude},${data.homeLongitude} " +
+                            "radio=${data.safeZoneRadiusMeters}"
+                )
+
+                onLoaded(data.copy())
+            }
+            .addOnFailureListener { error ->
+                Log.e(TAG, "Error al leer Firebase", error)
+            }
+    }
+
+    private fun saveUpdates(
+        updates: Map<String, Any>,
+        onSuccess: (() -> Unit)? = null
+    ) {
+        val finalUpdates = updates.toMutableMap()
+
+        finalUpdates["lastUpdated"] =
+            System.currentTimeMillis()
+
+        databaseRef.updateChildren(finalUpdates)
+            .addOnSuccessListener {
+
+                Log.d(
+                    TAG,
+                    "Firebase actualizado: $finalUpdates"
+                )
+
+                onSuccess?.invoke()
+            }
+            .addOnFailureListener { error ->
+
+                Log.e(
+                    TAG,
+                    "Error al guardar en Firebase",
+                    error
+                )
+            }
+    }
+
     fun setSafeZoneRadius(newRadius: Float) {
-        this.safeZoneRadiusMeters = newRadius
-        currentData.safeZoneRadiusMeters = newRadius
-        checkSafeZone()
-        pushDataToFirebase()
+
+        loadLatestData { data ->
+
+            safeZoneRadiusMeters = newRadius
+
+            val distance = calculateDistance(
+                data.homeLatitude,
+                data.homeLongitude,
+                data.latitude,
+                data.longitude
+            )
+
+            val inside = distance <= newRadius
+
+            Log.d(
+                TAG,
+                "Cambio de radio: distancia=$distance radio=$newRadius dentro=$inside"
+            )
+
+            saveUpdates(
+                mapOf(
+                    "safeZoneRadiusMeters" to newRadius,
+                    "distanceFromBaseMeters" to distance,
+                    "isInsideSafeZone" to inside
+                )
+            )
+        }
     }
 
-    /**
-     * Fija las coordenadas actuales de la mascota como el centro del hogar.
-     */
     fun setCurrentAsBase() {
-        this.baseLatitude = currentData.latitude
-        this.baseLongitude = currentData.longitude
-        checkSafeZone()
-        pushDataToFirebase()
+
+        loadLatestData { data ->
+
+            baseLatitude = data.latitude
+            baseLongitude = data.longitude
+
+            safeZoneRadiusMeters = data.safeZoneRadiusMeters
+
+            saveUpdates(
+                mapOf(
+                    "homeLatitude" to baseLatitude,
+                    "homeLongitude" to baseLongitude,
+                    "distanceFromBaseMeters" to 0f,
+                    "isInsideSafeZone" to true
+                )
+            )
+        }
     }
 
-    /**
-     * Define una ubicación base arbitraria.
-     */
-    fun setBaseLocation(latitude: Double, longitude: Double) {
-        this.baseLatitude = latitude
-        this.baseLongitude = longitude
-        currentData.latitude = latitude
-        currentData.longitude = longitude
-        checkSafeZone()
-        pushDataToFirebase()
+    fun setBaseLocation(
+        latitude: Double,
+        longitude: Double
+    ) {
+
+        loadLatestData { data ->
+
+            baseLatitude = latitude
+            baseLongitude = longitude
+
+            val distance = calculateDistance(
+                latitude,
+                longitude,
+                data.latitude,
+                data.longitude
+            )
+
+            val inside =
+                distance <= data.safeZoneRadiusMeters
+
+            saveUpdates(
+                mapOf(
+                    "homeLatitude" to latitude,
+                    "homeLongitude" to longitude,
+                    "distanceFromBaseMeters" to distance,
+                    "isInsideSafeZone" to inside
+                )
+            )
+        }
     }
 
-    /**
-     * Alias compatible para forzar escape de la mascota desde ActivatorActivity.
-     */
     fun simulateBreach(forceBreach: Boolean) {
         toggleSafeZoneBreach(forceBreach)
     }
 
-    /**
-     * Fuerza la salida o entrada de la mascota de la zona segura para demostración.
-     */
     fun toggleSafeZoneBreach(forceBreach: Boolean) {
-        if (forceBreach) {
-            // Desplaza artificialmente las coordenadas más allá del radio seguro
-            currentData.latitude = baseLatitude + 0.0015
-            currentData.longitude = baseLongitude + 0.0015
-        } else {
-            // Regresa al centro del hogar
-            currentData.latitude = baseLatitude
-            currentData.longitude = baseLongitude
-        }
-        checkSafeZone()
-        pushDataToFirebase()
-    }
 
-    /**
-     * Inicia el ciclo automático de simulación (consumo y movimiento paulatino).
-     */
-    fun startSimulation(intervalMillis: Long = 4000L) {
-        if (isSimulating) return
-        isSimulating = true
+        loadLatestData { data ->
 
-        simulationJob = simulationScope.launch {
-            while (isActive && isSimulating) {
-                delay(intervalMillis)
-                simulateGradualConsumption()
-                simulatePetMovement()
-                pushDataToFirebase()
+            val homeLat = data.homeLatitude
+            val homeLon = data.homeLongitude
+            val radius = data.safeZoneRadiusMeters
+
+            val latitude: Double
+            val longitude: Double
+
+            if (forceBreach) {
+
+                // Desplazar la mascota aproximadamente 200 metros.
+                latitude = homeLat + 0.0015
+                longitude = homeLon + 0.0015
+
+            } else {
+
+                // Regresar la mascota al hogar.
+                latitude = homeLat
+                longitude = homeLon
+            }
+
+            val distance = calculateDistance(
+                homeLat,
+                homeLon,
+                latitude,
+                longitude
+            )
+
+            val isInside = distance <= radius
+
+            Log.d(
+                TAG,
+                "ESCAPE: forzar=$forceBreach " +
+                        "distancia=$distance " +
+                        "radio=$radius " +
+                        "dentro=$isInside"
+            )
+
+            val updates = mapOf(
+                "latitude" to latitude,
+                "longitude" to longitude,
+                "distanceFromBaseMeters" to distance,
+                "isInsideSafeZone" to isInside
+            )
+
+            saveUpdates(updates) {
+
+                Log.d(
+                    TAG,
+                    "ESCAPE GUARDADO: isInsideSafeZone=$isInside"
+                )
             }
         }
     }
 
-    /**
-     * Detiene el ciclo de simulación.
-     */
+    fun startSimulation(intervalMillis: Long = 4000L) {
+
+        if (isSimulating) return
+
+        isSimulating = true
+
+        simulationJob = simulationScope.launch {
+
+            while (isActive && isSimulating) {
+
+                delay(intervalMillis)
+
+                if (!isActive || !isSimulating) break
+
+                loadLatestData { data ->
+
+                    val foodWeight =
+                        if (data.foodWeightGrams > 5.0) {
+                            max(
+                                0.0,
+                                data.foodWeightGrams -
+                                        (2..8).random().toDouble()
+                            )
+                        } else {
+                            data.foodWeightGrams
+                        }
+
+                    val waterWeight =
+                        if (data.waterWeightGrams > 10.0) {
+                            max(
+                                0.0,
+                                data.waterWeightGrams -
+                                        (5..15).random().toDouble()
+                            )
+                        } else {
+                            data.waterWeightGrams
+                        }
+
+                    val latitude =
+                        data.latitude +
+                                ((1..5).random() - 3) * 0.00003
+
+                    val longitude =
+                        data.longitude +
+                                ((1..5).random() - 3) * 0.00003
+
+                    val distance = calculateDistance(
+                        data.homeLatitude,
+                        data.homeLongitude,
+                        latitude,
+                        longitude
+                    )
+
+                    val inside =
+                        distance <= data.safeZoneRadiusMeters
+
+                    saveUpdates(
+                        mapOf(
+                            "foodWeightGrams" to foodWeight,
+                            "foodPercent" to
+                                    ((foodWeight / maxFoodCapacityGrams) * 100).toInt(),
+                            "waterWeightGrams" to waterWeight,
+                            "waterPercent" to
+                                    ((waterWeight / maxWaterCapacityMl) * 100).toInt(),
+                            "latitude" to latitude,
+                            "longitude" to longitude,
+                            "distanceFromBaseMeters" to distance,
+                            "isInsideSafeZone" to inside
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     fun stopSimulation() {
         isSimulating = false
         simulationJob?.cancel()
         simulationJob = null
     }
 
-    /**
-     * Simula la dispensación de comida por el servomotor.
-     */
     fun dispenseFood(gramsToAdd: Double = 50.0) {
-        val newWeight = min(maxFoodCapacityGrams, currentData.foodWeightGrams + gramsToAdd)
-        currentData.foodWeightGrams = newWeight
-        currentData.foodPercent = ((newWeight / maxFoodCapacityGrams) * 100).toInt()
-        currentData.dispenseFoodTrigger = true
-        currentData.lastUpdated = System.currentTimeMillis()
-        pushDataToFirebase()
+
+        loadLatestData { data ->
+
+            val weight = min(
+                maxFoodCapacityGrams,
+                data.foodWeightGrams + gramsToAdd
+            )
+
+            saveUpdates(
+                mapOf(
+                    "foodWeightGrams" to weight,
+                    "foodPercent" to
+                            ((weight / maxFoodCapacityGrams) * 100).toInt(),
+                    "dispenseFoodTrigger" to true
+                )
+            )
+        }
     }
 
-    /**
-     * Simula el suministro de agua por la bomba DC.
-     */
     fun dispenseWater(mlToAdd: Double = 150.0) {
-        val newWeight = min(maxWaterCapacityMl, currentData.waterWeightGrams + mlToAdd)
-        currentData.waterWeightGrams = newWeight
-        currentData.waterPercent = ((newWeight / maxWaterCapacityMl) * 100).toInt()
-        currentData.dispenseWaterTrigger = true
-        currentData.lastUpdated = System.currentTimeMillis()
-        pushDataToFirebase()
-    }
 
-    private fun simulateGradualConsumption() {
-        // La mascota come entre 2g y 8g si hay comida disponible
-        if (currentData.foodWeightGrams > 5.0) {
-            val eaten = (2..8).random().toDouble()
-            val newWeight = max(0.0, currentData.foodWeightGrams - eaten)
-            currentData.foodWeightGrams = newWeight
-            currentData.foodPercent = ((newWeight / maxFoodCapacityGrams) * 100).toInt()
-        }
+        loadLatestData { data ->
 
-        // La mascota bebe entre 5ml y 15ml si hay agua disponible
-        if (currentData.waterWeightGrams > 10.0) {
-            val drunk = (5..15).random().toDouble()
-            val newWeight = max(0.0, currentData.waterWeightGrams - drunk)
-            currentData.waterWeightGrams = newWeight
-            currentData.waterPercent = ((newWeight / maxWaterCapacityMl) * 100).toInt()
+            val weight = min(
+                maxWaterCapacityMl,
+                data.waterWeightGrams + mlToAdd
+            )
+
+            saveUpdates(
+                mapOf(
+                    "waterWeightGrams" to weight,
+                    "waterPercent" to
+                            ((weight / maxWaterCapacityMl) * 100).toInt(),
+                    "dispenseWaterTrigger" to true
+                )
+            )
         }
     }
 
-    private fun simulatePetMovement() {
-        val latDelta = ((1..5).random() - 3) * 0.00003
-        val lonDelta = ((1..5).random() - 3) * 0.00003
+    private fun calculateDistance(
+        baseLat: Double,
+        baseLon: Double,
+        petLat: Double,
+        petLon: Double
+    ): Float {
 
-        currentData.latitude += latDelta
-        currentData.longitude += lonDelta
-        checkSafeZone()
-    }
-
-    private fun checkSafeZone() {
         val results = FloatArray(1)
+
         Location.distanceBetween(
-            baseLatitude, baseLongitude,
-            currentData.latitude, currentData.longitude,
+            baseLat,
+            baseLon,
+            petLat,
+            petLon,
             results
         )
-        val distanceInMeters = results[0]
-        currentData.distanceFromBaseMeters = distanceInMeters
-        currentData.isInsideSafeZone = distanceInMeters <= safeZoneRadiusMeters
+
+        return results[0]
     }
 
-    private fun pushDataToFirebase() {
-        currentData.lastUpdated = System.currentTimeMillis()
-        databaseRef.setValue(currentData)
+    fun getCurrentData(): SmartPetData {
+        return currentData.copy()
     }
-
-    fun getCurrentData(): SmartPetData = currentData
 }
