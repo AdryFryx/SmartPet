@@ -80,7 +80,7 @@ class ActivatorActivity : AppCompatActivity() {
     private fun loadCurrentSettings() {
         repository.getPetData()
             .addOnSuccessListener { snapshot ->
-                val data = snapshot.getValue(SmartPetData::class.java)
+                val data = snapshot.toObject(SmartPetData::class.java)
 
                 if (data == null) {
                     Toast.makeText(

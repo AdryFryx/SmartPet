@@ -37,6 +37,7 @@ android {
 }
 
 dependencies {
+    implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))

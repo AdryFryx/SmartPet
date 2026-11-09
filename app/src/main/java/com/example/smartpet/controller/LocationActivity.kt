@@ -1,4 +1,3 @@
-
 package com.example.smartpet.controller
 
 import android.Manifest
@@ -25,7 +24,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.firebase.database.ValueEventListener
+import com.google.firebase.firestore.ListenerRegistration
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.GeoPoint
@@ -41,7 +40,7 @@ class LocationActivity : AppCompatActivity() {
 
     private lateinit var mapView: MapView
     private lateinit var repository: SmartPetRepository
-    private var petListener: ValueEventListener? = null
+    private var petListener: ListenerRegistration? = null
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback

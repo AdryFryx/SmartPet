@@ -1,98 +1,108 @@
-
 package com.example.smartpet.repository
 
 import com.example.smartpet.model.FeedingLog
 import com.example.smartpet.model.SmartPetData
 import com.google.android.gms.tasks.Task
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.Query
-import com.google.firebase.database.ValueEventListener
+import com.google.firebase.firestore.CollectionReference
+import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 
 class SmartPetRepository {
 
-    private val databaseRef: DatabaseReference =
-        FirebaseDatabase.getInstance().getReference("smartpet_simulation")
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
-    private val historyRef: DatabaseReference =
-        FirebaseDatabase.getInstance().getReference("feeding_history")
+    // Documento principal de telemetría dentro de la colección "smartpet"
+    private val petDocRef: DocumentReference =
+        firestore.collection("smartpet").document("telemetry")
 
-    private val historyQuery: Query =
-        historyRef.limitToLast(10)
+    // Subcolección para el historial de raciones
+    private val historyCollectionRef: CollectionReference =
+        petDocRef.collection("feeding_history")
 
+    /**
+     * Escucha en tiempo real el documento de la mascota en Firestore.
+     */
     fun observePetData(
         onDataChanged: (SmartPetData) -> Unit
-    ): ValueEventListener {
+    ): ListenerRegistration {
 
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val data = snapshot.getValue(SmartPetData::class.java)
-                    ?: SmartPetData()
-
+        return petDocRef.addSnapshotListener { snapshot, _ ->
+            if (snapshot != null && snapshot.exists()) {
+                val data = snapshot.toObject(SmartPetData::class.java) ?: SmartPetData()
                 onDataChanged(data)
+            } else if (snapshot != null && !snapshot.exists()) {
+                // Si el documento aún no existe en Firestore, lo crea por primera vez
+                petDocRef.set(SmartPetData())
             }
-
-            override fun onCancelled(error: DatabaseError) {}
         }
-
-        databaseRef.addValueEventListener(listener)
-        return listener
     }
 
+    /**
+     * Escucha en tiempo real las últimas 10 raciones registradas.
+     */
     fun observeFeedingHistory(
         onDataChanged: (List<FeedingLog>) -> Unit
-    ): ValueEventListener {
+    ): ListenerRegistration {
 
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val logs = snapshot.children
-                    .reversed()
-                    .mapNotNull {
-                        it.getValue(FeedingLog::class.java)
+        return historyCollectionRef
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(10)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    val logs = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(FeedingLog::class.java)
                     }
-
-                onDataChanged(logs)
+                    onDataChanged(logs)
+                }
             }
-
-            override fun onCancelled(error: DatabaseError) {}
-        }
-
-        historyQuery.addValueEventListener(listener)
-        return listener
     }
 
-    fun getPetData(): Task<DataSnapshot> {
-        return databaseRef.get()
+    /**
+     * Obtiene el documento actual una sola vez.
+     */
+    fun getPetData(): Task<DocumentSnapshot> {
+        return petDocRef.get()
     }
 
-    fun getPetAge(): Task<DataSnapshot> {
-        return databaseRef.child("petAge").get()
+    /**
+     * Obtiene la edad de la mascota una sola vez.
+     */
+    fun getPetAge(): Task<DocumentSnapshot> {
+        return petDocRef.get()
     }
 
+    /**
+     * Actualiza campos específicos en Firestore.
+     */
     fun updatePetData(updates: Map<String, Any>): Task<Void> {
-        return databaseRef.updateChildren(updates)
+        return petDocRef.update(updates)
     }
 
+    /**
+     * Agrega un nuevo registro de ración a la subcolección en Firestore.
+     */
     fun addFeedingLog(type: String, amount: String): Task<Void>? {
-        val key = historyRef.push().key ?: return null
-
+        val newDocRef = historyCollectionRef.document()
         val log = FeedingLog(
-            id = key,
+            id = newDocRef.id,
             type = type,
             amount = amount,
             timestamp = System.currentTimeMillis()
         )
-
-        return historyRef.child(key).setValue(log)
+        return newDocRef.set(log)
     }
 
-    fun removePetDataListener(listener: ValueEventListener) {
-        databaseRef.removeEventListener(listener)
+    /**
+     * Detiene la escucha en tiempo real de Firestore.
+     */
+    fun removePetDataListener(listener: ListenerRegistration) {
+        listener.remove()
     }
 
-    fun removeHistoryListener(listener: ValueEventListener) {
-        historyQuery.removeEventListener(listener)
+    fun removeHistoryListener(listener: ListenerRegistration) {
+        listener.remove()
     }
 }

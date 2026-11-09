@@ -1,4 +1,3 @@
-
 package com.example.smartpet.controller
 
 import android.os.Bundle
@@ -11,7 +10,7 @@ import com.example.smartpet.model.FeedingLog
 import com.example.smartpet.model.SmartPetData
 import com.example.smartpet.repository.SmartPetRepository
 import com.google.android.material.button.MaterialButton
-import com.google.firebase.database.ValueEventListener
+import com.google.firebase.firestore.ListenerRegistration
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -31,8 +30,8 @@ class FoodActivity : AppCompatActivity() {
 
     private var currentData: SmartPetData = SmartPetData()
 
-    private var petDataListener: ValueEventListener? = null
-    private var historyListener: ValueEventListener? = null
+    private var petDataListener: ListenerRegistration? = null
+    private var historyListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
