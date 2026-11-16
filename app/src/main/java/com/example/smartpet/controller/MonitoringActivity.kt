@@ -61,7 +61,6 @@ class MonitoringActivity : AppCompatActivity() {
             }
         }
 
-    // Selector para foto de mascota -> sube directo a Firestore
     private val selectPetImageLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.GetContent()
     ) { uri: android.net.Uri? ->
@@ -76,7 +75,6 @@ class MonitoringActivity : AppCompatActivity() {
         }
     }
 
-    // Selector para foto de usuario -> sube directo a Firestore
     private val selectUserImageLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.GetContent()
     ) { uri: android.net.Uri? ->
@@ -91,7 +89,6 @@ class MonitoringActivity : AppCompatActivity() {
         }
     }
 
-    // Función auxiliar para convertir Uri a Base64 optimizada (máx 400x400 para ahorrar espacio)
     private fun uriToBase64(uri: android.net.Uri): String {
         return try {
             val inputStream = contentResolver.openInputStream(uri)
@@ -105,7 +102,6 @@ class MonitoringActivity : AppCompatActivity() {
         }
     }
 
-    // Cargar imagen Base64 en el ImageView correspondiente
     private fun renderBase64Image(base64Str: String, imageView: android.widget.ImageView) {
         if (base64Str.isNotEmpty()) {
             try {
@@ -121,27 +117,17 @@ class MonitoringActivity : AppCompatActivity() {
 
         val osmConfig = Configuration.getInstance()
         osmConfig.userAgentValue = packageName
-
         val cachePath = File(cacheDir, "carto_mini_tiles")
         osmConfig.osmdroidBasePath = cachePath
         osmConfig.osmdroidTileCache = File(cachePath, "tiles")
-
-        osmConfig.load(
-            this,
-            PreferenceManager.getDefaultSharedPreferences(this)
-        )
+        osmConfig.load(this, PreferenceManager.getDefaultSharedPreferences(this))
 
         binding = ActivityMonitoringBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         miniMapView = binding.miniMapView
-
         val cartoSource = XYTileSource(
-            "CartoMiniMap",
-            0,
-            20,
-            256,
-            ".png?key=$CARTO_API_KEY",
+            "CartoMiniMap", 0, 20, 256, ".png?key=$CARTO_API_KEY",
             arrayOf(
                 "https://a.basemaps.cartocdn.com/rastertiles/voyager/",
                 "https://b.basemaps.cartocdn.com/rastertiles/voyager/",
@@ -164,31 +150,20 @@ class MonitoringActivity : AppCompatActivity() {
         setupNavigation()
         loadSavedAvatars()
 
-        binding.ivPetAvatar.setOnClickListener {
-            selectPetImageLauncher.launch("image/*")
-        }
-
-        binding.ivUserAvatar.setOnClickListener {
-            selectUserImageLauncher.launch("image/*")
-        }
+        binding.ivPetAvatar.setOnClickListener { selectPetImageLauncher.launch("image/*") }
+        binding.ivUserAvatar.setOnClickListener { selectUserImageLauncher.launch("image/*") }
     }
 
     override fun onStart() {
         super.onStart()
-
         petDataListener = smartPetRepository.observePetData { data ->
-            runOnUiThread {
-                updateUI(data)
-            }
+            runOnUiThread { updateUI(data) }
         }
     }
 
     override fun onStop() {
         super.onStop()
-
-        petDataListener?.let {
-            smartPetRepository.removePetDataListener(it)
-        }
+        petDataListener?.let { smartPetRepository.removePetDataListener(it) }
         petDataListener = null
     }
 
@@ -229,32 +204,19 @@ class MonitoringActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveImageUriLocally(uri: android.net.Uri, key: String) {
-        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .edit()
-            .putString(key, uri.toString())
-            .apply()
-    }
-
     private fun loadSavedAvatars() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
 
         val petUriStr = prefs.getString(KEY_PET_PHOTO, null)
         if (!petUriStr.isNullOrEmpty()) {
-            try {
-                binding.ivPetAvatar.setImageURI(android.net.Uri.parse(petUriStr))
-            } catch (e: Exception) {
-                prefs.edit().remove(KEY_PET_PHOTO).apply()
-            }
+            try { binding.ivPetAvatar.setImageURI(android.net.Uri.parse(petUriStr)) }
+            catch (e: Exception) { prefs.edit().remove(KEY_PET_PHOTO).apply() }
         }
 
         val userUriStr = prefs.getString(KEY_USER_PHOTO, null)
         if (!userUriStr.isNullOrEmpty()) {
-            try {
-                binding.ivUserAvatar.setImageURI(android.net.Uri.parse(userUriStr))
-            } catch (e: Exception) {
-                prefs.edit().remove(KEY_USER_PHOTO).apply()
-            }
+            try { binding.ivUserAvatar.setImageURI(android.net.Uri.parse(userUriStr)) }
+            catch (e: Exception) { prefs.edit().remove(KEY_USER_PHOTO).apply() }
         }
     }
 
@@ -274,7 +236,8 @@ class MonitoringActivity : AppCompatActivity() {
         renderBase64Image(data.userPhotoBase64, binding.ivUserAvatar)
 
         binding.tvPetName.text = "${data.petName} ✏️"
-        binding.tvPetBreed.text = "Raza: ${data.petBreed} • Edad: ${data.petAge} años"
+        // LÍNEA CORREGIDA:
+        binding.tvPetBreed.text = "Raza: ${data.petBreed} | Edad: ${data.petAge} años"
 
         binding.tvFoodPercent.text = "${data.foodPercent}%"
         binding.pbFood.progress = data.foodPercent
@@ -312,6 +275,7 @@ class MonitoringActivity : AppCompatActivity() {
             binding.tvConnectionStatus.setTextColor(Color.parseColor("#DC2626"))
         }
 
+        // Evaluación de notificaciones de Escape
         if (!data.isInsideSafeZone && wasInsideSafeZoneLastTime) {
             notificationHelper.sendSafeZoneBreachAlert(data.petName)
             wasInsideSafeZoneLastTime = false
@@ -319,6 +283,7 @@ class MonitoringActivity : AppCompatActivity() {
             wasInsideSafeZoneLastTime = true
         }
 
+        // Evaluación de notificaciones de Comida
         if (data.foodPercent <= 15 && !hasNotifiedLowFood) {
             notificationHelper.sendLowFoodAlert(data.petName, data.foodPercent)
             hasNotifiedLowFood = true
@@ -355,9 +320,7 @@ class MonitoringActivity : AppCompatActivity() {
             miniPetMarker?.title = data.petName
         }
 
-        miniSafeZoneCircle?.let {
-            miniMapView.overlays.remove(it)
-        }
+        miniSafeZoneCircle?.let { miniMapView.overlays.remove(it) }
 
         val circlePoints = Polygon.pointsAsCircle(homePoint, data.safeZoneRadiusMeters.toDouble())
         miniSafeZoneCircle = Polygon(miniMapView).apply {
@@ -372,88 +335,64 @@ class MonitoringActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        binding.tvPetName.setOnClickListener {
-            showEditPetDialog()
-        }
+        binding.tvPetName.setOnClickListener { showEditPetDialog() }
 
         binding.btnDispenseFood.setOnClickListener {
             binding.btnDispenseFood.isEnabled = false
             binding.btnDispenseFood.text = "Dispensando..."
 
-            smartPetRepository.getPetData()
-                .addOnSuccessListener { snapshot ->
-                    val currentData = snapshot.toObject(SmartPetData::class.java) ?: SmartPetData()
+            smartPetRepository.getPetData().addOnSuccessListener { snapshot ->
+                val currentData = snapshot.toObject(SmartPetData::class.java) ?: SmartPetData()
+                val maxCapacity = if (currentData.foodMaxCapacityGrams > 0) currentData.foodMaxCapacityGrams else 350.0
+                val doseToAdd = if (currentData.foodDoseGrams > 0) currentData.foodDoseGrams else 50.0
+                val newWeight = min(maxCapacity, currentData.foodWeightGrams + doseToAdd)
+                val newPercent = ((newWeight / maxCapacity) * 100).toInt()
 
-                    val maxCapacity = if (currentData.foodMaxCapacityGrams > 0) currentData.foodMaxCapacityGrams else 350.0
-                    val doseToAdd = if (currentData.foodDoseGrams > 0) currentData.foodDoseGrams else 50.0
+                val updates = mapOf(
+                    "foodWeightGrams" to newWeight,
+                    "foodPercent" to newPercent,
+                    "dispenseFoodTrigger" to true,
+                    "lastUpdated" to System.currentTimeMillis()
+                )
 
-                    val newWeight = min(maxCapacity, currentData.foodWeightGrams + doseToAdd)
-                    val newPercent = ((newWeight / maxCapacity) * 100).toInt()
-
-                    val updates = mapOf(
-                        "foodWeightGrams" to newWeight,
-                        "foodPercent" to newPercent,
-                        "dispenseFoodTrigger" to true,
-                        "lastUpdated" to System.currentTimeMillis()
-                    )
-
-                    smartPetRepository.updatePetData(updates)
-                        .addOnCompleteListener { task ->
-                            binding.btnDispenseFood.isEnabled = true
-                            binding.btnDispenseFood.text = "Dispensar comida"
-
-                            if (task.isSuccessful) {
-                                Toast.makeText(this, "Se sirvieron %.0f g de alimento".format(doseToAdd), Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(this, "Error al dispensar alimento", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                }
-                .addOnFailureListener {
+                smartPetRepository.updatePetData(updates).addOnCompleteListener { task ->
                     binding.btnDispenseFood.isEnabled = true
                     binding.btnDispenseFood.text = "Dispensar comida"
-                    Toast.makeText(this, "Error al dispensar alimento", Toast.LENGTH_SHORT).show()
+                    if (task.isSuccessful) Toast.makeText(this, "Se sirvieron %.0f g de alimento".format(doseToAdd), Toast.LENGTH_SHORT).show()
                 }
+            }.addOnFailureListener {
+                binding.btnDispenseFood.isEnabled = true
+                binding.btnDispenseFood.text = "Dispensar comida"
+            }
         }
 
         binding.btnDispenseWater.setOnClickListener {
             binding.btnDispenseWater.isEnabled = false
             binding.btnDispenseWater.text = "Suministrando..."
 
-            smartPetRepository.getPetData()
-                .addOnSuccessListener { snapshot ->
-                    val currentData = snapshot.toObject(SmartPetData::class.java) ?: SmartPetData()
+            smartPetRepository.getPetData().addOnSuccessListener { snapshot ->
+                val currentData = snapshot.toObject(SmartPetData::class.java) ?: SmartPetData()
+                val maxCapacity = 1000.0
+                val doseToAdd = 150.0
+                val newWeight = min(maxCapacity, currentData.waterWeightGrams + doseToAdd)
+                val newPercent = ((newWeight / maxCapacity) * 100).toInt()
 
-                    val maxCapacity = 1000.0
-                    val doseToAdd = 150.0
+                val updates = mapOf(
+                    "waterWeightGrams" to newWeight,
+                    "waterPercent" to newPercent,
+                    "dispenseWaterTrigger" to true,
+                    "lastUpdated" to System.currentTimeMillis()
+                )
 
-                    val newWeight = min(maxCapacity, currentData.waterWeightGrams + doseToAdd)
-                    val newPercent = ((newWeight / maxCapacity) * 100).toInt()
-
-                    val updates = mapOf(
-                        "waterWeightGrams" to newWeight,
-                        "waterPercent" to newPercent,
-                        "dispenseWaterTrigger" to true,
-                        "lastUpdated" to System.currentTimeMillis()
-                    )
-
-                    smartPetRepository.updatePetData(updates)
-                        .addOnCompleteListener { task ->
-                            binding.btnDispenseWater.isEnabled = true
-                            binding.btnDispenseWater.text = "Dispensar agua"
-
-                            if (task.isSuccessful) {
-                                Toast.makeText(this, "Se suministraron 150ml de agua", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(this, "Error al suministrar agua", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                }
-                .addOnFailureListener {
+                smartPetRepository.updatePetData(updates).addOnCompleteListener { task ->
                     binding.btnDispenseWater.isEnabled = true
                     binding.btnDispenseWater.text = "Dispensar agua"
-                    Toast.makeText(this, "Error al suministrar agua", Toast.LENGTH_SHORT).show()
+                    if (task.isSuccessful) Toast.makeText(this, "Se suministraron 150ml de agua", Toast.LENGTH_SHORT).show()
                 }
+            }.addOnFailureListener {
+                binding.btnDispenseWater.isEnabled = true
+                binding.btnDispenseWater.text = "Dispensar agua"
+            }
         }
     }
 
@@ -491,7 +430,6 @@ class MonitoringActivity : AppCompatActivity() {
         layout.addView(etMaxFood)
         layout.addView(etMaxWater)
 
-        // Prellenar con los datos actuales de Firestore
         smartPetRepository.getPetData().addOnSuccessListener { snap ->
             val data = snap.toObject(SmartPetData::class.java) ?: SmartPetData()
             etOwner.setText(data.ownerName)
@@ -518,38 +456,20 @@ class MonitoringActivity : AppCompatActivity() {
                     "lastUpdated" to System.currentTimeMillis()
                 )
 
-                smartPetRepository.updatePetData(updates)
-                    .addOnSuccessListener {
-                        Toast.makeText(this, "Datos guardados en Firestore", Toast.LENGTH_SHORT).show()
-                    }
+                smartPetRepository.updatePetData(updates).addOnSuccessListener {
+                    Toast.makeText(this, "Datos guardados en Firestore", Toast.LENGTH_SHORT).show()
+                }
             }
             .setNegativeButton("Cancelar", null)
             .show()
     }
 
     private fun setupNavigation() {
-        binding.navHome.setOnClickListener {
-            binding.mainScrollView.smoothScrollTo(0, 0)
-        }
-
-        binding.navFood.setOnClickListener {
-            startActivity(Intent(this, FoodActivity::class.java))
-        }
-
-        binding.navLocation.setOnClickListener {
-            startActivity(Intent(this, LocationActivity::class.java))
-        }
-
-        binding.navSettings.setOnClickListener {
-            startActivity(Intent(this, ActivatorActivity::class.java))
-        }
-
-        binding.sectionLocation.setOnClickListener {
-            startActivity(Intent(this, LocationActivity::class.java))
-        }
-
-        binding.cardMiniMapContainer.setOnClickListener {
-            startActivity(Intent(this, LocationActivity::class.java))
-        }
+        binding.navHome.setOnClickListener { binding.mainScrollView.smoothScrollTo(0, 0) }
+        binding.navFood.setOnClickListener { startActivity(Intent(this, FoodActivity::class.java)) }
+        binding.navLocation.setOnClickListener { startActivity(Intent(this, LocationActivity::class.java)) }
+        binding.navSettings.setOnClickListener { startActivity(Intent(this, ActivatorActivity::class.java)) }
+        binding.sectionLocation.setOnClickListener { startActivity(Intent(this, LocationActivity::class.java)) }
+        binding.cardMiniMapContainer.setOnClickListener { startActivity(Intent(this, LocationActivity::class.java)) }
     }
 }

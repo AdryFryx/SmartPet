@@ -12,14 +12,12 @@ import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 
-class PetDeviceSimulator {
+object PetDeviceSimulator {
+
+    private const val TAG = "SMARTPET_ESCAPE"
 
     private val firestore = FirebaseFirestore.getInstance()
     private val petDocRef = firestore.collection("smartpet").document("telemetry")
-
-    companion object {
-        private const val TAG = "SMARTPET_ESCAPE"
-    }
 
     val maxFoodCapacityGrams = 350.0
     val maxWaterCapacityMl = 1000.0
@@ -108,8 +106,6 @@ class PetDeviceSimulator {
     }
 
     fun toggleSafeZoneBreach(forceBreach: Boolean) {
-        // BLOQUEO DE CONDICIÓN DE CARRERA:
-        // Si forzamos el escape, detenemos la simulación automática para que no lo sobreescriba.
         if (forceBreach && isSimulating) {
             stopSimulation()
         }
@@ -126,7 +122,7 @@ class PetDeviceSimulator {
                 "longitude" to longitude,
                 "distanceFromBaseMeters" to distance,
                 "isInsideSafeZone" to isInside,
-                "lastUpdated" to System.currentTimeMillis() // Forzamos actualización de tiempo
+                "lastUpdated" to System.currentTimeMillis()
             )
 
             petDocRef.update(updates).addOnSuccessListener {
@@ -145,8 +141,7 @@ class PetDeviceSimulator {
                 if (!isActive || !isSimulating) break
 
                 loadLatestData { data ->
-                    // CANDADO: Si activaste el escape manual, no queremos que el simulador mueva
-                    // la mascota de regreso accidentalmente hasta que tú lo apagues.
+
                     if (!data.isInsideSafeZone) return@loadLatestData
 
                     val foodWeight = if (data.foodWeightGrams > 5.0) {

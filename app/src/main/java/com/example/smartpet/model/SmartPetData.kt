@@ -1,6 +1,7 @@
 package com.example.smartpet.model
 
 import com.google.firebase.firestore.IgnoreExtraProperties
+import com.google.firebase.firestore.PropertyName
 
 @IgnoreExtraProperties
 data class SmartPetData(
@@ -31,7 +32,12 @@ data class SmartPetData(
     var longitude: Double = -70.6483,
     var homeLatitude: Double = -33.4569,
     var homeLongitude: Double = -70.6483,
+
+    // BLINDAJE CONTRA EL BUG DE FIREBASE
+    @get:PropertyName("isInsideSafeZone")
+    @set:PropertyName("isInsideSafeZone")
     var isInsideSafeZone: Boolean = true,
+
     var distanceFromBaseMeters: Float = 0.0f,
     var safeZoneRadiusMeters: Float = 50.0f,
 
@@ -40,7 +46,9 @@ data class SmartPetData(
     var dispenseWaterTrigger: Boolean = false,
     var connectionMode: String = "WIFI",
 
-    // Estado del dispositivo
+    @get:PropertyName("isDeviceOnline")
+    @set:PropertyName("isDeviceOnline")
     var isDeviceOnline: Boolean = true,
+
     var lastUpdated: Long = System.currentTimeMillis()
 )

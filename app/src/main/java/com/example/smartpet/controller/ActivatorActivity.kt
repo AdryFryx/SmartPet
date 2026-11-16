@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.smartpet.databinding.ActivityActivatorBinding
 import com.example.smartpet.model.PetDeviceSimulator
 import com.example.smartpet.repository.SmartPetRepository
+import com.example.smartpet.util.NotificationHelper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ListenerRegistration
 
@@ -16,13 +17,11 @@ class ActivatorActivity : AppCompatActivity() {
     private lateinit var binding: ActivityActivatorBinding
     private lateinit var auth: FirebaseAuth
     private lateinit var repository: SmartPetRepository
+    private lateinit var notificationHelper: NotificationHelper
 
     private var settingsListener: ListenerRegistration? = null
     private var isApplyingRemoteState = false
-
-    companion object {
-        private val simulator = PetDeviceSimulator()
-    }
+    private var wasInsideSafeZoneLastTime = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +31,7 @@ class ActivatorActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
         repository = SmartPetRepository()
+        notificationHelper = NotificationHelper(this)
 
         setupAccountInfo()
         setupListeners()
@@ -41,7 +41,16 @@ class ActivatorActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         settingsListener = repository.observePetData { data ->
-            // Solo actualizamos la pantalla si NO estamos en medio de un toque manual
+
+            // EL DISPARADOR DE NOTIFICACIONES QUE FALTABA
+            if (!data.isInsideSafeZone && wasInsideSafeZoneLastTime) {
+                notificationHelper.sendSafeZoneBreachAlert(data.petName)
+                wasInsideSafeZoneLastTime = false
+            } else if (data.isInsideSafeZone) {
+                wasInsideSafeZoneLastTime = true
+            }
+
+            // SOLO ACTUALIZAMOS LA INTERFAZ SI EL USUARIO NO LA ESTÁ TOCANDO
             if (!isApplyingRemoteState) {
                 val radius = data.safeZoneRadiusMeters.coerceIn(20f, 150f)
                 binding.sliderSafeZoneRadius.value = radius
@@ -51,8 +60,8 @@ class ActivatorActivity : AppCompatActivity() {
 
                 binding.switchForceBreach.isChecked = !data.isInsideSafeZone
 
-                binding.switchAutoSimulation.isChecked = simulator.isSimulating
-                binding.tvSyncBadge.text = if (simulator.isSimulating) "🟢 Simulación activa" else "⚪ Simulación pausada"
+                binding.switchAutoSimulation.isChecked = PetDeviceSimulator.isSimulating
+                binding.tvSyncBadge.text = if (PetDeviceSimulator.isSimulating) "🟢 Simulación activa" else "⚪ Simulación pausada"
             }
         }
     }
@@ -91,16 +100,15 @@ class ActivatorActivity : AppCompatActivity() {
         binding.sliderSafeZoneRadius.addOnChangeListener { _, value, fromUser ->
             if (fromUser && !isApplyingRemoteState) {
                 binding.tvSafeZoneRadiusLabel.text = "Radio de seguridad: %.0f metros".format(value)
-                simulator.setSafeZoneRadius(value)
+                PetDeviceSimulator.setSafeZoneRadius(value)
             }
         }
 
         binding.btnSetBaseLocation.setOnClickListener {
-            simulator.setCurrentAsBase()
+            PetDeviceSimulator.setCurrentAsBase()
             Toast.makeText(this, "Coordenadas fijadas como Hogar", Toast.LENGTH_SHORT).show()
         }
 
-        // RadioButtons para WIFI/BLE
         binding.rgChannel.setOnCheckedChangeListener { _, checkedId ->
             if (!isApplyingRemoteState && checkedId != -1) {
                 val mode = if (checkedId == binding.rbBluetooth.id) "BLE" else "WIFI"
@@ -110,36 +118,33 @@ class ActivatorActivity : AppCompatActivity() {
             }
         }
 
-        // SWITCH SIMULACIÓN: Solo reacciona al toque físico del dedo
         binding.switchAutoSimulation.setOnClickListener {
             val isChecked = binding.switchAutoSimulation.isChecked
             if (isChecked) {
-                simulator.startSimulation()
+                PetDeviceSimulator.startSimulation()
                 binding.tvSyncBadge.text = "🟢 Simulación activa"
             } else {
-                simulator.stopSimulation()
+                PetDeviceSimulator.stopSimulation()
                 binding.tvSyncBadge.text = "⚪ Simulación pausada"
             }
         }
 
-        // SWITCH ESCAPE: Solo reacciona al toque físico del dedo
         binding.switchForceBreach.setOnClickListener {
             val isChecked = binding.switchForceBreach.isChecked
 
-            // Congelamos la lectura remota por 2 segundos para ignorar el rebote visual de Firestore
             isApplyingRemoteState = true
 
             if (isChecked) {
-                binding.switchAutoSimulation.isChecked = false // Apaga visualmente el auto-simulador
+                binding.switchAutoSimulation.isChecked = false
                 binding.tvSyncBadge.text = "⚪ Simulación pausada"
             }
 
-            simulator.simulateBreach(isChecked)
+            PetDeviceSimulator.simulateBreach(isChecked)
 
             val message = if (isChecked) "¡Alerta de escape forzada!" else "Mascota devuelta a base"
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
-            // Descongelamos la UI después de que la nube ya confirmó el dato (2 segundos)
+            // Descongelar visualmente en 2 segundos
             binding.switchForceBreach.postDelayed({ isApplyingRemoteState = false }, 2000)
         }
 
@@ -148,7 +153,7 @@ class ActivatorActivity : AppCompatActivity() {
                 .setTitle("Cerrar Sesión")
                 .setMessage("¿Estás seguro de que deseas salir?")
                 .setPositiveButton("Salir") { _, _ ->
-                    simulator.stopSimulation()
+                    PetDeviceSimulator.stopSimulation()
                     auth.signOut()
                     val intent = Intent(this, LoginActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
