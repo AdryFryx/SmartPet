@@ -128,6 +128,19 @@
                     app:cornerRadius="14dp"
                     android:backgroundTint="@color/primary_green" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnGoogleSignIn"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:layout_marginTop="16dp"
+                    android:text="Continuar con Google"
+                    android:textColor="#757575"
+                    app:backgroundTint="#FFFFFF"
+                    app:icon="@android:drawable/ic_menu_myplaces"
+                    app:iconTint="@null"
+                    app:strokeColor="#E0E0E0"
+                    app:strokeWidth="1dp" />
+
                 <!-- Botón Registrarse -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnRegister"

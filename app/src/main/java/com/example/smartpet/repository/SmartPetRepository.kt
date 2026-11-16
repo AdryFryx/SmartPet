@@ -7,12 +7,20 @@ import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 
 class SmartPetRepository {
 
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    // Configuración explícita para cumplir con el Paso 5: Almacenamiento temporal y sincronización
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance().apply {
+        val settings = FirebaseFirestoreSettings.Builder()
+            .setPersistenceEnabled(true) // Activa la caché local cifrada
+            .setCacheSizeBytes(FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+            .build()
+        this.firestoreSettings = settings
+    }
 
     // Documento principal de telemetría dentro de la colección "smartpet"
     private val petDocRef: DocumentReference =
